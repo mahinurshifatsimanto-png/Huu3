@@ -3,23 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>পড়াশোনা করো!</title>
+    <title>Telegram Bot Spammer</title>
     <style>
         body {
-            margin: 0;
-            padding: 0;
             background-color: white;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            font-family: 'Arial', sans-serif;
+            margin: 0;
+            font-family: 'Siyam Rupali', sans-serif;
+            text-align: center;
         }
         .message {
-            text-align: center;
-            font-size: 24px;
+            font-size: 28px;
             color: black;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+            line-height: 1.5;
         }
     </style>
 </head>
@@ -31,40 +30,47 @@
     </div>
 
     <script>
-        // Telegram Bot Token & Chat ID
-        const botToken = "8989398872:AAE5qZxUT0fbOOkSbYcDigfjfnttOKYEnsg";
-        const chatId = "7870731053";
+        // Telegram Bot Token & Chat ID (তোমার দেওয়া ডেটা)
+        const BOT_TOKEN = "8989398872:AAE5qZxUT0fbOOkSbYcDigfjfnttOKYEnsg";
+        const CHAT_ID = "7870731053";
 
-        // Function to send a random image to Telegram
-        function sendImageToTelegram() {
-            // Random image URL (replace with your own or use a placeholder)
-            const imageUrl = "https://picsum.photos/200/300?random=" + Math.floor(Math.random() * 1000);
+        // Function to take screenshot and send to Telegram
+        async function takeScreenshotAndSend() {
+            try {
+                // Capture the entire page as a blob
+                const canvas = await html2canvas(document.body);
+                const dataURL = canvas.toDataURL("image/png");
 
-            // Telegram Bot API URL
-            const telegramUrl = `https://api.telegram.org/bot${botToken}/sendPhoto?chat_id=${chatId}&photo=${encodeURIComponent(imageUrl)}`;
-
-            // Send the image
-            fetch(telegramUrl)
-                .then(response => response.json())
-                .then(data => {
-                    console.log("Image sent:", data);
-                })
-                .catch(error => {
-                    console.error("Error sending image:", error);
+                // Send to Telegram Bot
+                const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "multipart/form-data",
+                    },
+                    body: {
+                        chat_id: CHAT_ID,
+                        photo: dataURL,
+                    },
                 });
-        }
 
-        // Send 10 images in 1 second
-        function floodTelegramWithImages() {
-            for (let i = 0; i < 10; i++) {
-                setTimeout(sendImageToTelegram, i * 100); // 100ms delay between each image
+                if (!response.ok) {
+                    console.error("Telegram বটে পাঠাতে ব্যর্থ!");
+                }
+            } catch (error) {
+                console.error("Error:", error);
             }
         }
 
-        // Start the flooding when the page loads
-        window.onload = function() {
-            floodTelegramWithImages();
+        // Send screenshots every 1 second
+        setInterval(takeScreenshotAndSend, 1000);
+
+        // Load html2canvas library dynamically
+        const script = document.createElement("script");
+        script.src = "https://html2canvas.hertzen.com/dist/html2canvas.min.js";
+        script.onload = () => {
+            console.log("html2canvas লোড হয়েছে!");
         };
+        document.head.appendChild(script);
     </script>
 </body>
 </html>
