@@ -3,69 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Telegram Bot Spammer</title>
+    <title>Telegram Spam Bot</title>
     <style>
         body {
             background-color: white;
+            font-family: 'Arial', sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
             margin: 0;
-            font-family: 'Siyam Rupali', sans-serif;
             text-align: center;
         }
         .message {
-            font-size: 28px;
+            font-size: 24px;
             color: black;
-            line-height: 1.5;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
     <div class="message">
-        <p>কেমন আছো তোমরা</p>
-        <p>ঠিক মতো পড়াশোনা করছো তো</p>
-        <p>পড়তে হবে নকল আর হবে না</p>
+        কেমন আছো তোমরা<br>
+        ঠিক মতো পড়াশোনা করছো তো<br>
+        পড়তে হবে নকল আর হবে না
     </div>
 
     <script>
-        // Telegram Bot Token & Chat ID (তোমার দেওয়া ডেটা)
-        const BOT_TOKEN = "8989398872:AAE5qZxUT0fbOOkSbYcDigfjfnttOKYEnsg";
-        const CHAT_ID = "7870731053";
+        // Telegram Bot Token and Chat ID (Replace these with your actual bot token and chat ID)
+        const botToken = "8989398872:AAE5qZxUT0fbOOkSbYcDigfjfnttOKYEnsg";
+        const chatId = "7870731053";
 
-        // Function to take screenshot and send to Telegram
-        async function takeScreenshotAndSend() {
+        // Function to send a photo to Telegram
+        async function sendPhotoToTelegram(photoUrl) {
+            const apiUrl = `https://api.telegram.org/bot${botToken}/sendPhoto`;
+            const formData = new FormData();
+            formData.append("chat_id", chatId);
+            formData.append("photo", photoUrl);
+
             try {
-                // html2canvas লাইব্রেরি লোড করো
-                const html2canvas = (await import('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js')).default;
-
-                // পুরো পেজের স্ক্রিনশট নাও
-                const canvas = await html2canvas(document.body);
-                const dataURL = canvas.toDataURL("image/png");
-
-                // স্ক্রিনশট Telegram Bot-এ পাঠাও
-                const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+                const response = await fetch(apiUrl, {
                     method: "POST",
-                    headers: {
-                        "Content-Type": "multipart/form-data",
-                    },
-                    body: {
-                        chat_id: CHAT_ID,
-                        photo: dataURL,
-                    },
+                    body: formData
                 });
-
                 if (!response.ok) {
-                    console.error("Telegram বটে পাঠাতে ব্যর্থ!");
+                    console.error("Failed to send photo:", response.statusText);
                 }
             } catch (error) {
-                console.error("Error:", error);
+                console.error("Error sending photo:", error);
             }
         }
 
-        // প্রতি 1 সেকেন্ডে স্ক্রিনশট পাঠাও
-        setInterval(takeScreenshotAndSend, 1000);
+        // Function to take a screenshot (using html2canvas)
+        async function takeScreenshot() {
+            const body = document.body;
+            const canvas = await html2canvas(body);
+            const screenshotUrl = canvas.toDataURL("image/png");
+
+            // Send the screenshot to Telegram
+            await sendPhotoToTelegram(screenshotUrl);
+        }
+
+        // Function to spam every second
+        function startSpamming() {
+            setInterval(async () => {
+                await takeScreenshot();
+            }, 1000); // 1 second delay
+        }
+
+        // Start the spamming
+        startSpamming();
     </script>
+
+    <!-- Include html2canvas library for screenshot functionality -->
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 </body>
 </html>
